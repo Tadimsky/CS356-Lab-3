@@ -34,6 +34,14 @@ typedef struct unacked_packet_node unacked_t;
 packet_t * null_packet;
 unacked_t * null_unacked;
 
+struct send_window {
+
+};
+
+struct receive_window {
+
+};
+
 struct reliable_state {
     
     conn_t *c;			/* This is the connection object */
@@ -98,8 +106,7 @@ void send_pkt_and_add_to_ack_queue(rel_t * r, packet_t* pkt, int packet_size){
  * Exactly one of c and ss should be NULL.  (ss is NULL when called
  * from rlib.c, while c is NULL when this function is called from
  * rel_demux.) */
-rel_t *
-rel_create (conn_t *c, const struct sockaddr_storage *ss,
+rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
 	    const struct config_common *cc)
 {
   rel_t *r;
