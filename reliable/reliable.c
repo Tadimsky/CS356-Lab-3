@@ -31,6 +31,9 @@ struct unacked_packet_node {
 };
 typedef struct unacked_packet_node unacked_t;
 
+packet_t * null_packet;
+unacked_t * null_unacked;
+
 struct reliable_state {
     
     conn_t *c;			/* This is the connection object */
@@ -117,6 +120,13 @@ rel_create (conn_t *c, const struct sockaddr_storage *ss,
 
   /* Do any other initialization you need here */
     
+    null_packet = (packet_t *) malloc(sizeof(packet_t));
+    null_packet->seqno = 0;
+    
+    null_unacked = (unacked_t *) malloc(sizeof(unacked_t));
+    null_unacked->time_since_last_send = -1;
+    null_unacked->packet = null_packet;
+    
     if (c->sender_receiver == RECEIVER){
         //send EOF. Probably should add it to a list of unacked packets in case it is not received.
         //TODO: not sure about the size here. Do all 1000 values need to be read given we only care about the first char?
@@ -191,5 +201,33 @@ void
 rel_timer ()
 {
   /* Retransmit any packets that need to be retransmitted */
-
+    rel_t* r = rel_list;
+    
+    while (r != NULL){
+        
+        /*Temporary constants TODO: replace them with runtime variables
+         *
+         */
+        int sending_window_size = r->window_size;
+        int resend_frequency = 5;
+        int max_total_resend_time = resend_frequency * 10;
+        int i;
+        for (i = 0; i< sending_window_size;i++) {
+            
+            /*unacked nodes is a linked list containing metadata and previously sent packets that have not been successfully acked by the receiver.
+             */
+            unacked_t* u = &(r -> unacked_infos[i]);
+            u->time_since_last_send++;
+            
+            /*if this is actually a node
+             *
+             */
+            if (u->packet->seqno != null_unacked->packet->seqno){
+                if ((u -> time_since_last_send % resend_frequency == 0) && u -> time_since_last_send < max_total_resend_time){
+                    conn_sendpkt(r->c, u->packet, ntohs(u->packet->len));
+                }
+            }
+        }
+        r = r->next;
+    }
 }
