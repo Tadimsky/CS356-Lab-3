@@ -38,13 +38,18 @@ struct send_window {
 	int window_size;
 	uint32_t *largest_sent_frame;
 	uint32_t *last_ack_received;
+    // Array containing the packets the sender has sent but has not received an ack for
+    // (along with the time since they were last sent)
+    unacked_t* unacked_infos;
 };
+typedef struct send_window send_window_t;
 
 struct receive_window {
 	int window_size;
 	uint32_t *last_packet_received;
 	uint32_t *last_ack_sent;
 };
+typedef struct receive_window receive_window_t;
 
 struct reliable_state {
     
@@ -60,19 +65,13 @@ struct reliable_state {
      */
     packet_t* receive_ordering_buffer;
     
-    /*
-     //Array of size window that holds sent packets. Remove from the buffer when ACK comes back.
-     //    packet_t* send_ordering_buffer;
-     
-     // Array containing the packets the sender has sent but has not received an ack for
-     // (along with the time since they were last sent)
-     */
-    unacked_t* unacked_infos;
-    
     /* probably don't need these as the receiver terminates its end immediately
      bool read_eof;
      bool received_eof;
      */
+    
+    receive_window_t* receive_window;
+    send_window_t* send_window;
 };
 rel_t *rel_list;
 
@@ -83,7 +82,7 @@ rel_t *rel_list;
  **/
 void send_pkt_and_add_to_ack_queue(rel_t * r, packet_t* pkt, int packet_size){
     int order = ntohl(pkt->seqno) - r->last_ack_received;
-    r->unacked_infos[order].packet = pkt;
+    r->send_window->unacked_infos[order].packet = pkt;
     conn_sendpkt(r->c, pkt, packet_size);
 }
 
