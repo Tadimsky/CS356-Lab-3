@@ -35,11 +35,21 @@ packet_t * null_packet;
 unacked_t * null_unacked;
 
 struct send_window {
+	int window_size;
+	rel_t *next;
+	rel_t **prev;
 
+	uint32_t *largest_sent_frame;
+	uint32_t *last_ack_received;
 };
 
 struct receive_window {
+	int window_size;
+	rel_t *next;
+	rel_t **prev;
 
+	uint32_t *last_packet_received;
+	uint32_t *last_ack_sent;
 };
 
 struct reliable_state {
@@ -47,14 +57,18 @@ struct reliable_state {
     conn_t *c;			/* This is the connection object */
     
     /* Add your own data fields below this */
-    
-    
-    //copied directly from old lab (with conn_t obviously not repeated)
-    
+
+
     // will we have more than one connection?
-    rel_t *next;			/* Linked list for traversing all connections */
+    /* Linked list for traversing all connections */
+    /*
+    rel_t *next;
     rel_t **prev;
     int window_size;
+    */
+    struct receive_window;
+    struct send_window;
+
     /*
      // All packets with sequence number lower than ackno have been recieved by the SENDER
      // last frame received
@@ -87,7 +101,6 @@ struct reliable_state {
      bool received_eof;
      */
 };
-
 rel_t *rel_list;
 
 
