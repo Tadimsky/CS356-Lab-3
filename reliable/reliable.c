@@ -25,6 +25,8 @@
 #define ACK_START 1
 #define SEQ_START 1
 
+#define RESEND_FREQUENCY 5
+
 struct unacked_packet_node {
     int time_since_last_send;
     packet_t* packet;
@@ -223,37 +225,33 @@ rel_output (rel_t *r)
 {
 }
 
+/*
+ Resends sending_window_size number of packets. Because the window size is dynamic,
+ there may be more packets in the buffer than just window_size.  They will have higher seqno's
+ and after succesful retransmissions will slide down into the active window area.
+ */
+void retransmit_packets(rel_t* r){
+    
+    int max_total_resend_time = RESEND_FREQUENCY * 10;
+    int i;
+    for (i =0; i < r->send_window->window_size; i++) {
+        unacked_t* u = &(r->send_window->unacked_infos[i]);
+        u->time_since_last_send++;
+        
+        if (u->packet->seqno != null_unacked->packet->seqno){
+            if ((u -> time_since_last_send % RESEND_FREQUENCY == 0) && u -> time_since_last_send < max_total_resend_time){
+                conn_sendpkt(r->c, u->packet, ntohs(u->packet->len));
+            }
+        }
+    }
+}
+
 void
 rel_timer ()
 {
   /* Retransmit any packets that need to be retransmitted */
     rel_t* r = rel_list;
+    retransmit_packets(r);
+
     
-    while (r != NULL){
-        
-        /*Temporary constants TODO: replace them with runtime variables
-         *
-         */
-        int sending_window_size = r->window_size;
-        int resend_frequency = 5;
-        int max_total_resend_time = resend_frequency * 10;
-        int i;
-        for (i = 0; i< sending_window_size;i++) {
-            
-            /*unacked nodes is a linked list containing metadata and previously sent packets that have not been successfully acked by the receiver.
-             */
-            unacked_t* u = &(r -> unacked_infos[i]);
-            u->time_since_last_send++;
-            
-            /*if this is actually a node
-             *
-             */
-            if (u->packet->seqno != null_unacked->packet->seqno){
-                if ((u -> time_since_last_send % resend_frequency == 0) && u -> time_since_last_send < max_total_resend_time){
-                    conn_sendpkt(r->c, u->packet, ntohs(u->packet->len));
-                }
-            }
-        }
-        r = r->next;
-    }
 }
