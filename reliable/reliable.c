@@ -36,7 +36,7 @@ unacked_t * null_unacked;
 
 struct send_window {
 	int window_size;
-	uint32_t *largest_sent_frame;
+	uint32_t *last_packet_sent;
 	uint32_t *last_ack_received;
     // Array containing the packets the sender has sent but has not received an ack for
     // (along with the time since they were last sent)
