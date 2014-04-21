@@ -136,8 +136,8 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
         memcpy(eof_pkt->data, data, sizeof(char)* bytes_of_data);
         eof_pkt->len = DATA_PACKET_SIZE + sizeof(char) * bytes_of_data;
         eof_pkt->ackno = 0;
-        eof_pkt->seqno = r->seqno;
-        r->seqno++;
+        eof_pkt->seqno = r->send_window->last_packet_sent;
+        r->send_window->last_packet_sent++;
         eof_pkt->cksum = 0;
         eof_pkt->cksum = cksum((void *) eof_pkt, eof_pkt->len);
         send_pkt_and_add_to_ack_queue(r, eof_pkt, sizeof(char) * bytes_of_data);
