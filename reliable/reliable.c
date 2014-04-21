@@ -74,6 +74,8 @@ struct reliable_state {
     
     receive_window_t* receive_window;
     send_window_t* send_window;
+    //The length of the buffer for sending or receiving
+    int maximum_window_size;
 };
 rel_t *rel_list;
 
@@ -113,6 +115,8 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
   rel_list = r;
 
   /* Do any other initialization you need here */
+    
+    r->maximum_window_size = cc->window;
     
     null_packet = (packet_t *) malloc(sizeof(packet_t));
     null_packet->seqno = 0;
