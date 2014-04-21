@@ -17,7 +17,7 @@
 
 struct unacked_packet_node {
     int time_since_last_send;
-    packet_t packet;
+    packet_t* packet;
 };
 typedef struct unacked_packet_node unacked_t;
 
