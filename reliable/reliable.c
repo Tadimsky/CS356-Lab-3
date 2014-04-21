@@ -15,15 +15,58 @@
 
 #include "rlib.h"
 
-
+struct unacked_packet_node {
+    int time_since_last_send;
+    packet_t packet;
+};
+typedef struct unacked_packet_node unacked_t;
 
 struct reliable_state {
-
-  conn_t *c;			/* This is the connection object */
-
-  /* Add your own data fields below this */
-
+    
+    conn_t *c;			/* This is the connection object */
+    
+    /* Add your own data fields below this */
+    
+    
+    //copied directly from old lab (with conn_t obviously not repeated)
+    
+    // will we have more than one connection?
+    rel_t *next;			/* Linked list for traversing all connections */
+    rel_t **prev;
+    int window_size;
+    /*
+     // All packets with sequence number lower than ackno have been recieved by the SENDER
+     // last frame received
+     *
+     */
+    uint32_t ackno;
+    
+    /* the last ack received from the receiver */
+    uint32_t last_ack_received;
+    
+    /* The next seqno the receiver is expecting. The lowest order number in the current window.
+     */
+    uint32_t seqno;
+    
+    /*Array of size window that holds incomming packets so that they can be added to our linked list in order.
+     */
+    packet_t* receive_ordering_buffer;
+    
+    /*
+     //Array of size window that holds sent packets. Remove from the buffer when ACK comes back.
+     //    packet_t* send_ordering_buffer;
+     
+     // Array containing the packets the sender has sent but has not received an ack for
+     // (along with the time since they were last sent)
+     */
+    unacked_t* unacked_infos;
+    
+    /* probably don't need these as the receiver terminates its end immediately
+     bool read_eof;
+     bool received_eof;
+     */
 };
+
 rel_t *rel_list;
 
 
