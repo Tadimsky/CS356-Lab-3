@@ -238,14 +238,26 @@ void retransmit_packets(rel_t* r){
     
     int max_total_resend_time = RESEND_FREQUENCY * 10;
     int i;
+    bool has_timed_out = false;
     for (i =0; i < r->send_window->window_size; i++) {
         unacked_t* u = &(r->send_window->unacked_infos[i]);
         u->time_since_last_send++;
         
         if (u->packet->seqno != null_unacked->packet->seqno){
             if ((u -> time_since_last_send % RESEND_FREQUENCY == 0) && u -> time_since_last_send < max_total_resend_time){
+                has_timed_out = true;
                 conn_sendpkt(r->c, u->packet, ntohs(u->packet->len));
             }
+        }
+    }
+    
+    if (has_timed_out){
+        r->send_window->window_size /= 2;
+        int j;
+        //go through and reset the counts on packets no longer in the perview of the window size
+        for (j=r->send_window->window_size; j < r->maximum_window_size; j++){
+            unacked_t * ua = &(r->send_window->unacked_infos[j]);
+            ua->time_since_last_send = 1;
         }
     }
 }
