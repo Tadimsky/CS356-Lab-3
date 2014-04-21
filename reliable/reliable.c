@@ -70,7 +70,15 @@ struct reliable_state {
 rel_t *rel_list;
 
 
-
+/**
+ Send the desired packet and add it to the queue of unacked packets. I'm open to better names.
+ Takes in a parameter of a packet in network byte order
+ **/
+void send_pkt_and_add_to_ack_queue(rel_t * r, packet_t* pkt, int packet_size){
+    int order = ntohl(pkt->seqno) - r->last_ack_received;
+    r->unacked_infos[order].packet = pkt;
+    conn_sendpkt(r->c, pkt, packet_size);
+}
 
 
 /* Creates a new reliable protocol session, returns NULL on failure.
