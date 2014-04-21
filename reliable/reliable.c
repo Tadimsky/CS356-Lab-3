@@ -81,7 +81,7 @@ rel_t *rel_list;
  Takes in a parameter of a packet in network byte order
  **/
 void send_pkt_and_add_to_ack_queue(rel_t * r, packet_t* pkt, int packet_size){
-    int order = ntohl(pkt->seqno) - r->last_ack_received;
+    int order = ntohl(pkt->seqno) - (int) (r->send_window->last_ack_received);
     r->send_window->unacked_infos[order].packet = pkt;
     conn_sendpkt(r->c, pkt, packet_size);
 }
