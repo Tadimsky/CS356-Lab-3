@@ -36,18 +36,12 @@ unacked_t * null_unacked;
 
 struct send_window {
 	int window_size;
-	rel_t *next;
-	rel_t **prev;
-
 	uint32_t *largest_sent_frame;
 	uint32_t *last_ack_received;
 };
 
 struct receive_window {
 	int window_size;
-	rel_t *next;
-	rel_t **prev;
-
 	uint32_t *last_packet_received;
 	uint32_t *last_ack_sent;
 };
@@ -58,30 +52,9 @@ struct reliable_state {
     
     /* Add your own data fields below this */
 
-
-    // will we have more than one connection?
-    /* Linked list for traversing all connections */
-    /*
-    rel_t *next;
-    rel_t **prev;
-    int window_size;
-    */
     struct receive_window;
     struct send_window;
 
-    /*
-     // All packets with sequence number lower than ackno have been recieved by the SENDER
-     // last frame received
-     *
-     */
-    uint32_t ackno;
-    
-    /* the last ack received from the receiver */
-    uint32_t last_ack_received;
-    
-    /* The next seqno the receiver is expecting. The lowest order number in the current window.
-     */
-    uint32_t seqno;
     
     /*Array of size window that holds incomming packets so that they can be added to our linked list in order.
      */
