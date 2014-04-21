@@ -38,8 +38,8 @@ unacked_t * null_unacked;
 
 struct send_window {
 	int window_size;
-	uint32_t *last_packet_sent;
-	uint32_t *last_ack_received;
+	uint32_t last_packet_sent;
+	uint32_t last_ack_received;
     // Array containing the packets the sender has sent but has not received an ack for
     // (along with the time since they were last sent)
     unacked_t* unacked_infos;
@@ -48,8 +48,8 @@ typedef struct send_window send_window_t;
 
 struct receive_window {
 	int window_size;
-	uint32_t *last_packet_received;
-	uint32_t *last_ack_sent;
+	uint32_t last_packet_received;
+	uint32_t last_ack_sent;
 };
 typedef struct receive_window receive_window_t;
 
@@ -163,23 +163,23 @@ void shift_send_buffer (rel_t *r) {
 */
     int i = 0;
     while (
-        i < r->window_size &&
-        ntohl((r->unacked_infos[i].packet)->seqno) != null_packet->seqno &&
-        ntohl((r->unacked_infos[i].packet)->seqno) < r->last_ack_received) {
+        i < r->maximum_window_size &&
+        ntohl((r->send_window->unacked_infos[i].packet)->seqno) != null_packet->seqno &&
+        ntohl((r->send_window->unacked_infos[i].packet)->seqno) < r->send_window->last_ack_received) {
 
         /* debug("Freeing Packet from Send: %d \n", ntohl(r->unacked_infos[i].packet.seqno));
 
         */
-    	r->unacked_infos[i] = *null_unacked;
+    	r->send_window->unacked_infos[i] = *null_unacked;
         i++;
     }
     int last_moved = i;
 
     for (i = 0; i < last_moved; i++) {
-        r->unacked_infos[i] = r->unacked_infos[last_moved + i];
+        r->send_window->unacked_infos[i] = r->send_window->unacked_infos[last_moved + i];
     }
-    for (i = last_moved; i < r->window_size; i++) {
-        r->unacked_infos[i] = *null_unacked;
+    for (i = last_moved; i < r->maximum_window_size; i++) {
+        r->send_window->unacked_infos[i] = *null_unacked;
     }
 
 }
