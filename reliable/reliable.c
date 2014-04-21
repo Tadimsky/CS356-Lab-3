@@ -145,6 +145,40 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
   return r;
 }
 
+/**
+  Removes the first packet from the send window. Shifts everything down by one in order to free up space at the end of the send window so that a new packet
+  can be inserted and sent.
+*/
+void shift_send_buffer (rel_t *r) {
+    /* debug("---Entering shift_send_buffer---\n");
+
+    // debug("LAR: %d", r->last_ack_received);
+
+*/
+    int i = 0;
+    while (
+        i < r->window_size &&
+        ntohl((r->unacked_infos[i].packet)->seqno) != null_packet->seqno &&
+        ntohl((r->unacked_infos[i].packet)->seqno) < r->last_ack_received) {
+
+        /* debug("Freeing Packet from Send: %d \n", ntohl(r->unacked_infos[i].packet.seqno));
+
+        */
+    	r->unacked_infos[i] = *null_unacked;
+        i++;
+    }
+    int last_moved = i;
+
+    for (i = 0; i < last_moved; i++) {
+        r->unacked_infos[i] = r->unacked_infos[last_moved + i];
+    }
+    for (i = last_moved; i < r->window_size; i++) {
+        r->unacked_infos[i] = *null_unacked;
+    }
+
+}
+
+
 void
 rel_destroy (rel_t *r)
 {
