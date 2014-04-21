@@ -12,8 +12,18 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 
 #include "rlib.h"
+
+#define RECEIVER 2
+#define SENDER 1
+
+#define DATA_PACKET_SIZE 12
+#define ACK_PACKET_SIZE 8
+
+#define ACK_START 1
+#define SEQ_START 1
 
 struct unacked_packet_node {
     int time_since_last_send;
@@ -106,6 +116,28 @@ rel_create (conn_t *c, const struct sockaddr_storage *ss,
   rel_list = r;
 
   /* Do any other initialization you need here */
+    
+    if (c->sender_receiver == RECEIVER){
+        //send EOF. Probably should add it to a list of unacked packets in case it is not received.
+        //TODO: not sure about the size here. Do all 1000 values need to be read given we only care about the first char?
+        //purposedly leaving this ugly with the likely wrong 1000 to catch someones eye.
+        packet_t* eof_pkt = malloc(sizeof(packet_t));
+        const int bytes_of_data = 1000;
+        
+        char data[bytes_of_data] = "\0";
+        memcpy(eof_pkt->data, data, sizeof(char)* bytes_of_data);
+        eof_pkt->len = DATA_PACKET_SIZE + sizeof(char) * bytes_of_data;
+        eof_pkt->ackno = 0;
+        eof_pkt->seqno = r->seqno;
+        r->seqno++;
+        eof_pkt->cksum = 0;
+        eof_pkt->cksum = cksum((void *) eof_pkt, eof_pkt->len);
+        send_pkt_and_add_to_ack_queue(r, eof_pkt, sizeof(char) * bytes_of_data);
+    } else if (c->sender_receiver == SENDER){
+        
+    } else {
+        //we're neither sender nor receiver so something went terribly wrong...
+    }
 
 
   return r;
