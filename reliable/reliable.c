@@ -16,6 +16,23 @@
 
 #include "rlib.h"
 
+
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+
+#define debug(...)  fprintf(stderr, __VA_ARGS__)
+
+#define debug_send(...) debug(KGRN __VA_ARGS__)
+#define debug_recv(...) debug(KBLU __VA_ARGS__)
+
+
+
 #define RECEIVER 2
 #define SENDER 1
 
@@ -90,15 +107,15 @@ send_window_t * create_send_window(uint32_t size) {
 
 receive_window_t * create_receive_window(uint32_t size) {
   receive_window_t * rw = (receive_window_t*)malloc(sizeof(receive_window_t));
-  rw->last_packet_received =0
+  rw->last_packet_received = 0;
   rw->last_ack_sent = 0;
   rw->window_size = size;
 
   rw->buffer = (packet_t*)malloc(sizeof(packet_t) * size);
 
    int i;
-    for (i = 0; i < cc->window; i++) {
-        memcpy(&(sw->buffer[i]), null_packet, sizeof(packet_t));
+    for (i = 0; i < size; i++) {
+        memcpy(&(rw->buffer[i]), null_packet, sizeof(packet_t));
     }
 }
 
