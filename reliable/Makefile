@@ -11,10 +11,11 @@
 #DMALLOC_CFLAGS = -I/afs/ir/class/cs144/dmalloc -DDMALLOC=1
 #DMALLOC_LIBS = -L/afs/ir/class/cs144/dmalloc -ldmalloc
 
-LIBRT = `test -f /usr/lib/librt.a && printf -- -lrt`
+LIBRT = -lrt
 
 CC = gcc
-CFLAGS = -g -Wall -Werror $(DMALLOC_CFLAGS)
+#CFLAGS = -g -Wall -Werror $(DMALLOC_CFLAGS)
+CFLAGS = -g -Wall $(DMALLOC_CFLAGS)
 LIBS = $(DMALLOC_LIBS)
 
 all: reliable
