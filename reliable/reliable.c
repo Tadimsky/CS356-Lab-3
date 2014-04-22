@@ -37,7 +37,7 @@ packet_t * null_packet;
 unacked_t * null_unacked;
 
 struct send_window {
-	int window_size;
+	uint32_t window_size;
 	uint32_t last_packet_sent;
 	uint32_t last_ack_received;
     // Array containing the packets the sender has sent but has not received an ack for
@@ -46,13 +46,14 @@ struct send_window {
 };
 typedef struct send_window send_window_t;
 
+
 struct receive_window {
-	int window_size;
+	uint32_t window_size;
 	uint32_t last_packet_received;
 	uint32_t last_ack_sent;
     /*Array of size window that holds incomming packets so that they can be added to our linked list in order.
      */
-    packet_t* receive_ordering_buffer;
+    packet_t* buffer;
 };
 typedef struct receive_window receive_window_t;
 
@@ -62,8 +63,6 @@ struct reliable_state {
     
     /* Add your own data fields below this */
 
-    struct receive_window;
-    struct send_window;
      bool read_eof;
      bool received_eof;
     
@@ -73,6 +72,44 @@ struct reliable_state {
     int maximum_window_size;
 };
 rel_t *rel_list;
+
+
+send_window_t * create_send_window(uint32_t size) {
+  send_window_t * sw = (send_window_t*)malloc(sizeof(send_window_t));
+  sw->last_packet_sent = 0;
+  sw->last_ack_received = 0;
+  sw->window_size = size;
+  sw->unacked_infos = (unacked_t*)malloc(sizeof(unacked_t) * size);
+
+   int i;
+    for (i = 0; i < size; i++) {
+        memcpy(&(sw->unacked_infos[i]), null_unacked, sizeof(unacked_t));
+        sw->unacked_infos[i].time_since_last_send = 0;
+    }
+}
+
+receive_window_t * create_receive_window(uint32_t size) {
+  receive_window_t * rw = (receive_window_t*)malloc(sizeof(receive_window_t));
+  rw->last_packet_received =0
+  rw->last_ack_sent = 0;
+  rw->window_size = size;
+
+  rw->buffer = (packet_t*)malloc(sizeof(packet_t) * size);
+
+   int i;
+    for (i = 0; i < cc->window; i++) {
+        memcpy(&(sw->buffer[i]), null_packet, sizeof(packet_t));
+    }
+}
+
+void init_default_data() {
+    null_packet = (packet_t *) malloc(sizeof(packet_t));
+    null_packet->seqno = 0;
+    
+    null_unacked = (unacked_t *) malloc(sizeof(unacked_t));
+    null_unacked->time_since_last_send = -1;
+    null_unacked->packet = null_packet;
+}
 
 
 /**
@@ -113,28 +150,12 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
   /* Do any other initialization you need here */
     
     r->maximum_window_size = cc->window;
-    r->receive_window->window_size = cc->window;
-    r->send_window->window_size = cc->window;
+    r->receive_window = create_receive_window(cc->window);
+    r->send_window = create_send_window(cc->window);
     
-    null_packet = (packet_t *) malloc(sizeof(packet_t));
-    null_packet->seqno = 0;
+    init_default_data();
     
-    null_unacked = (unacked_t *) malloc(sizeof(unacked_t));
-    null_unacked->time_since_last_send = -1;
-    null_unacked->packet = null_packet;
-    
-    packet_t * receive_buff = (packet_t*) xmalloc(sizeof(packet_t) * cc->window);
-    r->receive_window->receive_ordering_buffer = receive_buff;
-    
-    unacked_t * info = (unacked_t*) xmalloc(sizeof(unacked_t) * cc->window);
-    r->send_window->unacked_infos = info;
-    
-    int i;
-    for (i = 0; i < cc->window; i++) {
-        memcpy(&(r->receive_window->receive_ordering_buffer[i]), null_packet, sizeof(packet_t));
-        memcpy(&(r->send_window->unacked_infos[i]), null_unacked, sizeof(unacked_t));
-        r->send_window->unacked_infos[i].time_since_last_send = 0;
-    }
+   
     
     if (c->sender_receiver == RECEIVER){
         //send EOF. Probably should add it to a list of unacked packets in case it is not received.
@@ -232,20 +253,20 @@ void send_ack(rel_t *r) {
  Method to maintain the order of the receive_ordering_buffer.
  */
 void shift_receive_buffer (rel_t *r) {
-    print_window(r->receive_window->receive_ordering_buffer, r->receive_window->window_size);
+    print_window(r->receive_window->buffer, r->receive_window->window_size);
     /* debug("---Entering shift_receive_buffer---\n"); */
     
-    if (r->receive_window->receive_ordering_buffer[0].seqno == null_packet->seqno){
+    if (r->receive_window->buffer[0].seqno == null_packet->seqno){
         return;
     }
     
-    /* debug("Freeing Packet from Receive: %d \n", r->receive_ordering_buffer[0].seqno);
+    /* debug("Freeing Packet from Receive: %d \n", r->buffer[0].seqno);
      */
     int i;
     for (i = 0; i< r->receive_window->window_size - 1; i++){
-        r->receive_window->receive_ordering_buffer[i] = r->receive_window->receive_ordering_buffer [i+1];
+        r->receive_window->buffer[i] = r->receive_window->buffer [i+1];
     }
-    r->receive_window->receive_ordering_buffer[r->receive_window->window_size - 1] = *null_packet;
+    r->receive_window->buffer[r->receive_window->window_size - 1] = *null_packet;
     
     shift_receive_buffer(r);
 }
@@ -341,7 +362,7 @@ rel_output (rel_t *r)
 {
     int i = 0;
 	for (i = 0; i < r->receive_window->window_size; i++) {
-		packet_t f = r->receive_window->receive_ordering_buffer[i];
+		packet_t f = r->receive_window->buffer[i];
 		if (f.ackno == null_packet->ackno) {
 			/* first out of order packet encountered
 			 *
