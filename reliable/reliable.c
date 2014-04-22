@@ -223,3 +223,12 @@ rel_timer ()
         r = r->next;
     }
 }
+
+
+
+
+// Congestion Control
+// Slow Start: increase window size for each packet sent
+// Congestion Avoidance: If congestion is detected, halve the size of the windo
+// Fast Retransmit if 3 Dup Acks are received (same ack no)
+  // After Fast Retransmit, don't enter Slow Start
