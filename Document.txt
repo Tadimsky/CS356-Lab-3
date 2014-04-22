@@ -1,0 +1,18 @@
+Document - Lab3
+Adam, Sean, Jonno, Thomas
+
+Our document here is minimal. The reason for that is that our program fails to run. We put in an large amount of time trying to get our bugs out so that our lab would execute, but we really struggled in a number of ways. 
+1. 
+How much time does each retransmission take?
+
+2. 
+What is each sender’s throughput?
+
+3. 
+Does our algorithm fully utilize the link’s bandwidth?
+No. Our algorithm definitely does not fully utilize the link’s bandwidth. Bandwidth would be better utilized if packets were efficiently headered. Our header format, while not poorly designed, could probably have used less overhead which would’ve allowed greater utilization of the link bandwidth. 
+4. 
+Is the bottleneck link shared fairly?
+Yes. Slow start was implemented for both sender and receiver, and when congestion occurs, both sizes fairly reduce their buffer window so that the bottleneck is shared fairly. 
+5. 
+We could not produce figures because of our program’s limitations. As discussed above, we struggled to get our program to execute properly, and therefore couldn’t generate figures for analysis for this question. 
