@@ -203,6 +203,20 @@ rel_demux (const struct config_common *cc,
   //leave it blank here!!!
 }
 
+void send_ack(rel_t *r) {
+    // debug("---Entering send_ack---\n");
+    debug("Sending ACK %d.\n", r->send_window->last_ack_received);
+    
+    packet_t * pkt = (packet_t*) malloc(sizeof(packet_t));
+    pkt->len = htons(ACK_PACKET_SIZE);
+    pkt->ackno = htonl(r->send_window->last_ack_received);
+    pkt->seqno = 0;
+    pkt->cksum = cksum((void*) pkt, ACK_PACKET_SIZE);
+    
+    conn_sendpkt(r->c, pkt, ACK_PACKET_SIZE);
+    
+    free(pkt);
+}
 void
 rel_recvpkt (rel_t *r, packet_t *pkt, size_t n)
 {
