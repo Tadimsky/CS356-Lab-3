@@ -103,6 +103,7 @@ send_window_t * create_send_window(uint32_t size) {
         memcpy(&(sw->unacked_infos[i]), null_unacked, sizeof(unacked_t));
         sw->unacked_infos[i].time_since_last_send = 0;
     }
+    return sw;
 }
 
 receive_window_t * create_receive_window(uint32_t size) {
@@ -117,6 +118,7 @@ receive_window_t * create_receive_window(uint32_t size) {
     for (i = 0; i < size; i++) {
         memcpy(&(rw->buffer[i]), null_packet, sizeof(packet_t));
     }
+    return rw;
 }
 
 void init_default_data() {
@@ -200,6 +202,29 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
   return r;
 }
 
+
+
+void check_complete(rel_t * r) {
+    debug("calling check_complete\n");
+    debug("read_eof %d, received_eof %d \n", r->read_eof, r->received_eof);
+
+    if (r->read_eof && r->received_eof) {
+        /* all packets ACKed */
+        if ((r->send_window->unacked_infos[0].packet)->seqno != null_packet->seqno) {
+            debug("Waiting on unacked packets.\n");
+            return;
+        }        
+        /* all output written */
+        if (r->receive_window->buffer[0].ackno !=  null_packet->ackno) {
+            debug("Not all output outputted.\n");
+            return;
+        }
+
+        rel_destroy(r);
+        exit(0);
+    }
+}
+
 /**
   Removes the first packet from the send window. Shifts everything down by one in order to free up space at the end of the send window so that a new packet
   can be inserted and sent.
@@ -270,7 +295,7 @@ void send_ack(rel_t *r) {
  Method to maintain the order of the receive_ordering_buffer.
  */
 void shift_receive_buffer (rel_t *r) {
-    print_window(r->receive_window->buffer, r->receive_window->window_size);
+    //print_window(r->receive_window->buffer, r->receive_window->window_size);
     /* debug("---Entering shift_receive_buffer---\n"); */
     
     if (r->receive_window->buffer[0].seqno == null_packet->seqno){
@@ -465,6 +490,7 @@ rel_timer ()
 
     
 }
+
 
 
 
