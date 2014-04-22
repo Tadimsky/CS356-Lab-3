@@ -50,6 +50,9 @@ struct receive_window {
 	int window_size;
 	uint32_t last_packet_received;
 	uint32_t last_ack_sent;
+    /*Array of size window that holds incomming packets so that they can be added to our linked list in order.
+     */
+    packet_t* receive_ordering_buffer;
 };
 typedef struct receive_window receive_window_t;
 
@@ -61,11 +64,6 @@ struct reliable_state {
 
     struct receive_window;
     struct send_window;
-
-    
-    /*Array of size window that holds incomming packets so that they can be added to our linked list in order.
-     */
-    packet_t* receive_ordering_buffer;
     
     /* probably don't need these as the receiver terminates its end immediately
      bool read_eof;
@@ -118,6 +116,8 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
   /* Do any other initialization you need here */
     
     r->maximum_window_size = cc->window;
+    r->receive_window->window_size = cc->window;
+    r->send_window->window_size = cc->window;
     
     null_packet = (packet_t *) malloc(sizeof(packet_t));
     null_packet->seqno = 0;
@@ -125,6 +125,19 @@ rel_t * rel_create (conn_t *c, const struct sockaddr_storage *ss,
     null_unacked = (unacked_t *) malloc(sizeof(unacked_t));
     null_unacked->time_since_last_send = -1;
     null_unacked->packet = null_packet;
+    
+    packet_t * receive_buff = (packet_t*) xmalloc(sizeof(packet_t) * cc->window);
+    r->receive_window->receive_ordering_buffer = receive_buff;
+    
+    unacked_t * info = (unacked_t*) xmalloc(sizeof(unacked_t) * cc->window);
+    r->send_window->unacked_infos = info;
+    
+    int i;
+    for (i = 0; i < cc->window; i++) {
+        memcpy(&(r->receive_window->receive_ordering_buffer[i]), null_packet, sizeof(packet_t));
+        memcpy(&(r->send_window->unacked_infos[i]), null_unacked, sizeof(unacked_t));
+        r->send_window->unacked_infos[i].time_since_last_send = 0;
+    }
     
     if (c->sender_receiver == RECEIVER){
         //send EOF. Probably should add it to a list of unacked packets in case it is not received.
