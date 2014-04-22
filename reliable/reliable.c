@@ -69,6 +69,7 @@ struct reliable_state {
      bool read_eof;
      bool received_eof;
      */
+    bool received_eof;
     
     receive_window_t* receive_window;
     send_window_t* send_window;
@@ -278,6 +279,50 @@ rel_read (rel_t *s)
 void
 rel_output (rel_t *r)
 {
+    int i = 0;
+	for (i = 0; i < r->receive_window->window_size; i++) {
+		packet_t f = r->receive_window->receive_ordering_buffer[i];
+		if (f.ackno == null_packet->ackno) {
+			/* first out of order packet encountered
+			 *
+			 */
+			break;
+		}
+		else {
+			/* if we have enough space in the buffer
+			 *
+			 */
+			if (conn_bufspace(r->c) > (f.len)) {
+                
+                r->receive_window->last_ack_sent = r->receive_window->last_ack_sent + 1;
+                send_ack(r);
+                
+                if (f.len == DATA_PACKET_SIZE) {
+                    debug("EOF Packet Received!\n");
+                    r->received_eof = true;
+                    /* this is an EOF packet */
+                    conn_output(r->c, f.data, 0);
+                }
+                else {
+                    conn_output(r->c, f.data, f.len - DATA_PACKET_SIZE);
+                }
+				
+                
+                /* send ack to free up the sender's send window
+                 *
+                 */
+                
+                
+                
+			}
+		}
+        debug("LOL\n");
+	}
+    
+    /* shift our receive buffer for the packets that have now been outputted
+     *
+     */
+    shift_receive_buffer(r);
 }
 
 /*
