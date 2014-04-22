@@ -217,6 +217,29 @@ void send_ack(rel_t *r) {
     
     free(pkt);
 }
+
+/*
+ Method to maintain the order of the receive_ordering_buffer.
+ */
+void shift_receive_buffer (rel_t *r) {
+    print_window(r->receive_window->receive_ordering_buffer, r->receive_window->window_size);
+    /* debug("---Entering shift_receive_buffer---\n"); */
+    
+    if (r->receive_window->receive_ordering_buffer[0].seqno == null_packet->seqno){
+        return;
+    }
+    
+    /* debug("Freeing Packet from Receive: %d \n", r->receive_ordering_buffer[0].seqno);
+     */
+    int i;
+    for (i = 0; i< r->receive_window->window_size - 1; i++){
+        r->receive_window->receive_ordering_buffer[i] = r->receive_window->receive_ordering_buffer [i+1];
+    }
+    r->receive_window->receive_ordering_buffer[r->receive_window->window_size - 1] = *null_packet;
+    
+    shift_receive_buffer(r);
+}
+
 void
 rel_recvpkt (rel_t *r, packet_t *pkt, size_t n)
 {
