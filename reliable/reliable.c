@@ -64,12 +64,8 @@ struct reliable_state {
 
     struct receive_window;
     struct send_window;
-    
-    /* probably don't need these as the receiver terminates its end immediately
      bool read_eof;
      bool received_eof;
-     */
-    bool received_eof;
     
     receive_window_t* receive_window;
     send_window_t* send_window;
@@ -261,9 +257,9 @@ rel_recvpkt (rel_t *r, packet_t *pkt, size_t n)
 
 
 void
-rel_read (rel_t *s)
+rel_read (rel_t *r)
 {
-  if(s->c->sender_receiver == RECEIVER)
+  if(r->c->sender_receiver == RECEIVER)
   {
     //if already sent EOF to the sender
     //  return;
@@ -274,6 +270,70 @@ rel_read (rel_t *s)
   {
     //same logic as lab 1
   }
+    
+    char buffer[500];
+	/* drain the console
+	 *
+	 */
+	while (true) {
+        if (r->send_window->last_packet_sent - r->send_window->last_ack_received > r->send_window->window_size) {
+            debug_send("Sequence Number (%d) for new packet is too large for window. (%d -> %d)\n", r->send_window->last_packet_sent, r->send_window->last_ack_received, r->send_window->last_ack_received + r->send_window->window_size);
+            /*
+             cannot fit any new packets into the buffer
+             don't read anything in
+             */
+            return;
+        }
+        
+		int bytes_read = conn_input(r->c, buffer, 500);
+        
+		if (bytes_read == 0) {
+			return;
+		}
+        
+        /* Read no bytes and already read the end of the file */
+        if (bytes_read == -1 && r->read_eof) {
+            return;
+        }
+        
+        debug_send("Read %d bytes\n", bytes_read);
+        /* this may need to be r->seqno - 1
+         // debug("Current SeqNo: %d \t Last ACK: %d \t Window Size: %d\n", r->seqno, r->last_ack_received, r->window_size);
+         */
+        
+		packet_t * pkt = (packet_t *)malloc(sizeof(packet_t));
+		int packet_size = DATA_PACKET_SIZE;
+		if (bytes_read > 0) {
+			memcpy(pkt->data, buffer, bytes_read);
+			packet_size += bytes_read;
+		}
+        debug_send("Sending Packet #%d\n", r->send_window->last_packet_sent);
+        
+		pkt->seqno = htonl(r->send_window->last_packet_sent);
+		pkt->len = htons(packet_size);
+		pkt->ackno = htonl(r->send_window->last_ack_received);
+		pkt->cksum = cksum((void*)pkt, packet_size);
+        
+        /* this packet seqno into the sender buffer and keep here until we receive the ack back from receiver
+         */
+        int order = ntohl(pkt->seqno) - r->send_window->last_ack_received;
+        r->send_window->unacked_infos[order].packet = pkt;
+        
+        conn_sendpkt(r->c, pkt, packet_size);
+        
+        /* increment the sequence number for next time
+         *
+         */
+        r->send_window->last_packet_sent = r->send_window->last_packet_sent + 1;
+        
+		if (bytes_read == -1) {
+            r->read_eof = true;
+            debug_send("EOF Packet sent with size %d.\n", ntohs(pkt->len));
+            check_complete(r);
+			return;
+		} 
+	}
+    
 }
 
 void
